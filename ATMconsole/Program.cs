@@ -10,6 +10,13 @@ using System.Security;
 using System.Text.RegularExpressions;
 using System.Runtime.InteropServices;
 
+/*
+ * i imply my programm is somewhat safe by using SecureString
+ * know what?
+ * it only wastes place and doesn't help with security
+ * :D
+ */
+
 namespace ATMconsole
 {
     class Program
@@ -51,11 +58,11 @@ namespace ATMconsole
         {
             try
             {
-                Console.WriteLine(StringToLog);
                 outputFile.Write("\n" + DateTime.Now.ToShortTimeString() + ":\t" + StringToLog);
             }
             catch (Exception e)
             {
+                outputFile.Write("\n" + DateTime.Now.ToShortTimeString() + ": Closed LogWriter");
                 Console.WriteLine(e.ToString());
             }
         }
@@ -103,7 +110,7 @@ namespace ATMconsole
             }
         }
 
-        static bool CheckCard(SecureString card, SecureString PIN)
+        public static bool CheckCard(SecureString card, SecureString PIN)
         {
             try
             {
@@ -118,7 +125,7 @@ namespace ATMconsole
                     }
                     else
                     {
-                        LogProvider.LogString("Failed connection attempt: " + card.ToString());
+                        LogProvider.LogString("Failed connection attempt: " + BankAccount.SecureStringToString(card));
                         return false;
                     }
                 }
@@ -149,7 +156,7 @@ namespace ATMconsole
         static SecureString cardNumber;
         static SecureString pinCode;
         static int balance;
-        static Int64 defaultCardNumber = 480000000000;
+        static Int64 defaultCardNumber = 4800000000000000;
         static string[] commands = new string[] { "Log In", "Register", "Exit" };
 
         static public SecureString ConvertToSecureString(string password)
@@ -223,7 +230,44 @@ namespace ATMconsole
 
         public static void logIn()
         {
-            Console.WriteLine("Test.");
+            int Tries = 0;
+            while (Tries < 4)
+            {
+                Console.WriteLine("\nCard Number: ");
+                string cardN = Console.ReadLine();
+                if (Regex.IsMatch(cardN, @"^\d+$"))
+                {
+                    Console.WriteLine("\nPin Code: ");
+                    string pin = Console.ReadLine();
+                    if (Regex.IsMatch(pin, @"^\d+$") & pin.Length == 4)
+                    {
+                        cardNumber = ConvertToSecureString(cardN);
+                        pinCode = ConvertToSecureString(pin);
+                        if (SQLoperator.CheckCard(cardNumber, pinCode))
+                        {
+                            break;
+                        }
+                        else { Console.WriteLine("Wrong pin."); }
+                    }
+                }
+                Tries++;
+                Console.WriteLine("Autorisation failed.");
+            }
+            if (Tries > 3)
+            {
+                LogProvider.LogString("Failed login attempt. Connection terminated.");
+                SQLoperator.CloseConnection();
+                LogProvider.EndLog();
+                Environment.Exit(0);
+            }
+
+            
+            AccountOperation();
+        }
+
+        static void AccountOperation()
+        {
+            Console.WriteLine("Logged in");
         }
 
         public static void Greet()
@@ -262,6 +306,8 @@ namespace ATMconsole
                     }
                 default:
                     {
+                        SQLoperator.CloseConnection();
+                        LogProvider.EndLog();
                         Environment.Exit(0);
                         return;
                     }
