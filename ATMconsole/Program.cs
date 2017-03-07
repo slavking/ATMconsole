@@ -20,7 +20,7 @@ namespace ATMconsole
             {
                 LogProvider.BeginLog();
                 SQLoperator.EstablishConnection();
-                BankAccount.registerAccount();
+                BankAccount.Greet();
                 SQLoperator.CloseConnection();
                 LogProvider.EndLog();
             }
@@ -40,7 +40,7 @@ namespace ATMconsole
         {
             try
             {
-                outputFile.Write("Log beginning: " + DateTime.Now.ToShortDateString() + " @ " + DateTime.Now.ToShortTimeString() + "\n");
+                outputFile.Write("\nLog beginning: " + DateTime.Now.ToShortDateString() + " @ " + DateTime.Now.ToShortTimeString() + "\n");
             }
             catch (Exception e)
             {
@@ -150,6 +150,7 @@ namespace ATMconsole
         static SecureString pinCode;
         static int balance;
         static Int64 defaultCardNumber = 480000000000;
+        static string[] commands = new string[] { "Log In", "Register", "Exit" };
 
         static public SecureString ConvertToSecureString(string password)
         {
@@ -218,6 +219,54 @@ namespace ATMconsole
                 Console.WriteLine(e.ToString());
                 LogProvider.LogString(e.ToString());
             }
+        }
+
+        public static void logIn()
+        {
+            Console.WriteLine("Test.");
+        }
+
+        public static void Greet()
+        {
+            int inputN;
+            Console.WriteLine("Welcome to Bank Accounting System! \nUse one of available commands by typing the number:");
+            while (true)
+            {
+                int n = 1;
+                foreach (string c in commands)
+                {
+                    Console.WriteLine(n + ". " + c);
+                    n++;
+                }
+                string input = Console.ReadLine();
+
+                if (Regex.IsMatch(input, @"^\d+$"))
+                {
+                    Int32.TryParse(input, out inputN);
+                    if ((inputN < commands.Length) & inputN > 0) { break; }
+                }
+                Console.WriteLine("\nNo such command.");
+            }
+            string command = commands[inputN - 1].ToLower();
+            switch (command)
+            {
+                case "register":
+                    {
+                        registerAccount();
+                        return;
+                    }
+                case "log in":
+                    {
+                        logIn();
+                        return;
+                    }
+                default:
+                    {
+                        Environment.Exit(0);
+                        return;
+                    }
+            }
+
         }
     }
 }
