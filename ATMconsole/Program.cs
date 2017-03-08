@@ -27,7 +27,9 @@ namespace ATMconsole
             {
                 LogProvider.BeginLog();
                 SQLoperator.EstablishConnection();
-                BankAccount.Greet();
+                SQLoperator.CheckBalance(BankAccount.ConvertToSecureString("480966025011"));
+                //BankAccount.Greet();
+                Console.ReadKey();
                 SQLoperator.CloseConnection();
                 LogProvider.EndLog();
             }
@@ -135,6 +137,37 @@ namespace ATMconsole
                 LogProvider.LogString(e.ToString());
                 return false;
             }
+        }
+
+        public static string CheckBalance(SecureString card)
+        {
+            try
+            {
+                string balance;
+                using (SqlCommand checkBalance = new SqlCommand("SELECT cardBalance from dbo.BankUsersData where CardNumber like @card", bankConnection))
+                {
+                    checkBalance.Parameters.AddWithValue("@card", BankAccount.SecureStringToString(card));
+                    using (SqlDataReader reader = checkBalance.ExecuteReader())
+                    {
+                        if (reader != null)
+                        {
+                            while (reader.Read())
+                            {
+                                balance = reader["cardBalance"].ToString();
+                                Console.WriteLine(balance);
+                                return balance;
+                            }
+                        }
+                    }
+                    
+                }
+            }
+            catch (Exception e)
+            {
+                Console.WriteLine(e.ToString());
+                return null;
+            }
+            return null;
         }
 
         public static void CloseConnection()
