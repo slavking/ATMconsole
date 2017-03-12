@@ -10,13 +10,6 @@ using System.Security;
 using System.Text.RegularExpressions;
 using System.Runtime.InteropServices;
 
-/*
- * i imply my programm is somewhat safe by using SecureString
- * know what?
- * it only wastes place and doesn't help with security
- * :D
- */
-
 namespace ATMconsole
 {
     class Program
@@ -27,8 +20,7 @@ namespace ATMconsole
             {
                 LogProvider.BeginLog();
                 SQLoperator.EstablishConnection();
-                SQLoperator.CheckBalance(BankAccount.ConvertToSecureString("480966025011"));
-                //BankAccount.Greet();
+                BankAccount.Greet();
                 Console.ReadKey();
                 SQLoperator.CloseConnection();
                 LogProvider.EndLog();
@@ -170,6 +162,23 @@ namespace ATMconsole
             return null;
         }
 
+        public static void ChangeBalance(SecureString card, int amount)
+        {
+            try
+            {
+                using (SqlCommand checkBalance = new SqlCommand("UPDATE dbo.BankUsersData (cardBalance) VALUES (@amount) where CardNumber like @card", bankConnection))
+                {
+                    checkBalance.Parameters.AddWithValue("@card", BankAccount.SecureStringToString(card));
+                    checkBalance.Parameters.AddWithValue("@amount", amount.ToString());
+                    checkBalance.ExecuteNonQuery();
+                }
+            }
+            catch (Exception ex)
+            {
+                LogProvider.LogString(ex.ToString());
+            }
+        }
+
         public static void CloseConnection()
         {
             try
@@ -188,7 +197,7 @@ namespace ATMconsole
         static string name;
         static SecureString cardNumber;
         static SecureString pinCode;
-        static int balance;
+        static float balance;
         static Int64 defaultCardNumber = 4800000000000000;
         static string[] commands = new string[] { "Log In", "Register", "Exit" };
 
@@ -300,7 +309,53 @@ namespace ATMconsole
 
         static void AccountOperation()
         {
-            Console.WriteLine("Logged in");
+            string[] accountActions = new string[] { "Check balance", "Deposit money", "Withdraw money" };
+            Console.WriteLine("Select action:");
+            int inputN;
+            while (true)
+            {
+                int n = 1;
+                foreach (string c in accountActions)
+                {
+                    Console.WriteLine(n + ". " + c);
+                    n++;
+                }
+                string input = Console.ReadLine();
+
+                if (Regex.IsMatch(input, @"^\d+$"))
+                {
+                    Int32.TryParse(input, out inputN);
+                    if ((inputN < commands.Length) & inputN > 0) { break; }
+                }
+                Console.WriteLine("\nNo such command.");
+            }
+            string command = accountActions[inputN - 1].ToLower();
+            switch (command)
+            {
+                case "check balance":
+                    {
+                        balance = float.Parse(SQLoperator.CheckBalance(cardNumber));
+                        Console.WriteLine("Balance: " + balance.ToString("0.00") + "$");
+                        return;
+                    }
+                case "deposit money":
+                    {
+                        Console.WriteLine("Money Deposit Template");
+                        return;
+                    }
+                case "withdraw money":
+                    {
+                        Console.WriteLine("Money Withrdawal Template");
+                        return;
+                    }
+                default:
+                    {
+                        SQLoperator.CloseConnection();
+                        LogProvider.EndLog();
+                        Environment.Exit(0);
+                        return;
+                    }
+            }
         }
 
         public static void Greet()
