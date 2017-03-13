@@ -165,12 +165,11 @@ namespace ATMconsole
         {
             try
             {
-                using (SqlCommand checkBalance = new SqlCommand("UPDATE dbo.BankUsersData(cardBalance) VALUES (@amount) where CardNumber like @card", bankConnection))
-                {
-                    checkBalance.Parameters.AddWithValue("@card", BankAccount.SecureStringToString(card));
-                    checkBalance.Parameters.AddWithValue("@amount", amount.ToString());
-                    checkBalance.ExecuteNonQuery();
-                }
+                String q = "UPDATE dbo.BankUsersData SET cardBalance=@amount where CardNumber like @card";
+                SqlCommand changeCommand = new SqlCommand(q, bankConnection);
+                changeCommand.Parameters.AddWithValue("@amount", amount.ToString());
+                changeCommand.Parameters.AddWithValue("@card", BankAccount.SecureStringToString(card));
+                changeCommand.ExecuteNonQuery();
             }
             catch (Exception ex)
             {
@@ -306,10 +305,18 @@ namespace ATMconsole
             AccountOperation();
         }
 
-        public static bool changeBalance(float change)
+        public static bool changeBalance(float change,char symbol)
         {
             balance = float.Parse(SQLoperator.CheckBalance(cardNumber));
-            float newBalance = (balance - change);
+            float newBalance;
+            if (symbol == '+')
+            {
+                newBalance = (balance + change);
+            }
+            else
+            {
+                newBalance = (balance - change);
+            }
             try
             {
                 if (balance + change < 0)
@@ -372,7 +379,7 @@ namespace ATMconsole
                             if (Regex.IsMatch(amount, @"^\d+$"))
                             {
                                 float.TryParse(amount, out amountF);
-                                changeBalance(amountF);
+                                changeBalance(amountF, '+');
                                 break;
                             }
                             else
@@ -393,7 +400,7 @@ namespace ATMconsole
                             if (Regex.IsMatch(amount, @"^\d+$"))
                             {
                                 float.TryParse(amount, out amountF);
-                                if (changeBalance(amountF * -1))
+                                if (changeBalance(amountF, '-'))
                                 {
                                     break;
                                 }
