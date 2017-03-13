@@ -146,7 +146,6 @@ namespace ATMconsole
                             while (reader.Read())
                             {
                                 balance = reader["cardBalance"].ToString();
-                                Console.WriteLine(balance);
                                 return balance;
                             }
                         }
@@ -162,11 +161,11 @@ namespace ATMconsole
             return null;
         }
 
-        public static void ChangeBalance(SecureString card, int amount)
+        public static void ChangeBalance(SecureString card, float amount)
         {
             try
             {
-                using (SqlCommand checkBalance = new SqlCommand("UPDATE dbo.BankUsersData (cardBalance) VALUES (@amount) where CardNumber like @card", bankConnection))
+                using (SqlCommand checkBalance = new SqlCommand("UPDATE dbo.BankUsersData(cardBalance) VALUES (@amount) where CardNumber like @card", bankConnection))
                 {
                     checkBalance.Parameters.AddWithValue("@card", BankAccount.SecureStringToString(card));
                     checkBalance.Parameters.AddWithValue("@amount", amount.ToString());
@@ -307,6 +306,31 @@ namespace ATMconsole
             AccountOperation();
         }
 
+        public static bool changeBalance(float change)
+        {
+            balance = float.Parse(SQLoperator.CheckBalance(cardNumber));
+            float newBalance = (balance - change);
+            try
+            {
+                if (balance + change < 0)
+                {
+                    Console.WriteLine("You can't withdraw amount that is more than your current balance: " + balance.ToString() + "$");
+                    return false;
+                }
+                else
+                {
+                    SQLoperator.ChangeBalance(cardNumber, newBalance);
+                    SQLoperator.CheckBalance(cardNumber);
+                    return true;
+                }
+            }
+            catch (Exception ex)
+            {
+                LogProvider.LogString(ex.ToString());
+                return false;
+            }
+        }
+
         static void AccountOperation()
         {
             string[] accountActions = new string[] { "Check balance", "Deposit money", "Withdraw money" };
@@ -325,7 +349,7 @@ namespace ATMconsole
                 if (Regex.IsMatch(input, @"^\d+$"))
                 {
                     Int32.TryParse(input, out inputN);
-                    if ((inputN < commands.Length) & inputN > 0) { break; }
+                    if ((inputN <= commands.Length) & inputN > 0) { break; }
                 }
                 Console.WriteLine("\nNo such command.");
             }
@@ -340,12 +364,45 @@ namespace ATMconsole
                     }
                 case "deposit money":
                     {
-                        Console.WriteLine("Money Deposit Template");
+                        Console.WriteLine("Amount you want to deposit: ");
+                        while (true)
+                        {
+                            float amountF;
+                            string amount = Console.ReadLine();
+                            if (Regex.IsMatch(amount, @"^\d+$"))
+                            {
+                                float.TryParse(amount, out amountF);
+                                changeBalance(amountF);
+                                break;
+                            }
+                            else
+                            {
+                                Console.WriteLine("Please, set the amount of money you want to depoit:");
+                            }
+                        }
                         return;
                     }
                 case "withdraw money":
                     {
-                        Console.WriteLine("Money Withrdawal Template");
+                        SQLoperator.CheckBalance(cardNumber);
+                        Console.WriteLine("Amount you want to withdraw: ");
+                        while (true)
+                        {
+                            float amountF;
+                            string amount = Console.ReadLine();
+                            if (Regex.IsMatch(amount, @"^\d+$"))
+                            {
+                                float.TryParse(amount, out amountF);
+                                if (changeBalance(amountF * -1))
+                                {
+                                    break;
+                                }
+                            }
+                            else
+                            {
+                                Console.WriteLine("Please, set the amount of money you want to withdraw:");
+                            }
+                        }
                         return;
                     }
                 default:
